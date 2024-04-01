@@ -9,9 +9,9 @@ import json
 
 ## Check how many API calls you have made today @: https://rapidapi.com/developer/dashboard
 
-first_recipe = 1457
-last_recipe = 1650
-apiKey = "bb5cf13bfcmsh842089eabd0407bp1d2db4jsn77597332fafe"
+first_recipe = 0
+last_recipe = 0
+apiKey = ""
 filename = "data/collection/recipes1250-2500.json"
 
 
