@@ -9,9 +9,15 @@ def extract_ingredients_and_equipment(step):
     return ingredients, equipment
 
 # Read the JSON file
-with open('recipes1250-2500.json') as f:
-    recipes = json.load(f)
+#with open('recipes1250-2500.json') as f:
+ #   recipes = json.load(f)
 
+file_path = "/.../rat-AI-touille/data/collection/recipes1250-2500.json"
+
+with open(file_path, 'w') as f:
+#with open(file_path, 'r') as file:
+    data = json.load(file)
+    recipes = pd.DataFrame(data)
 # Preprocess the recipes
 for recipe in recipes:
     for instruction in recipe['analyzedInstructions']:
