@@ -1,0 +1,55 @@
+import json
+import pandas as pd
+from transformers import BertTokenizer
+from transformers import BertModel
+
+file_path = "data/collection/recipes1250-2500.json"
+
+# Extract ingredient list from instructions
+def extract_ingred(instruction):
+    ingredients = []
+    for step in instruction['steps']:
+        if len(step['ingredients']) > 0:
+            ingredients += [ingredient['name'] for ingredient in step['ingredients']]
+    return ingredients
+
+# Extract equipment list from instructions
+def extract_equip(instruction):
+    equipment = []
+    for step in instruction['steps']:
+        if len(step['equipment']) > 0:
+            equipment += [equip['name'] for equip in step['equipment']]
+    return equipment
+
+
+# Embeds strings using the bert tokenizer -- UNFINISHED (ola)
+def embed(str):
+    tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+    tokens = tokenizer.encode(str)
+    
+    
+
+# Write the preprocessed JSON back to a file
+# with open('check_preprocessed_recipes1250-2500.json', 'w') as f:
+#     json.dump(recipes, f, indent=4)
+
+def general_preprocess(file_path):
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+    recipes = pd.DataFrame(data)
+    
+    # remove all failures -- recipes without ids
+    recipes = recipes.dropna(axis=0, subset=['id'])
+    
+    # Extract ingredient list and equipment list
+    recipes['ingredient_list'] = recipes['analyzedInstructions'].map(lambda instruction: extract_ingred(instruction))
+    recipes['equipment_list'] = recipes['analyzedInstructions'].map(lambda instruction: extract_equip(instruction))
+    
+    # Tokenize titles
+    recipes['embed_title'] = recipes['title'].map(lambda title : embed(title))
+    
+    # Select only necessary columns
+    recipes = recipes['image', 'title', 'embed_title', 'ingredient_list', 'equipment_list', 'dishTypes']
+    
+
+general_preprocess(file_path)
