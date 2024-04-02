@@ -8,7 +8,7 @@ Directory:
 
     Collection: 
     - collection_script collecton script from spoon API
-    - recipes 0-5000 the raw data of recipes downloaded with all the information
+    - raw_recipes_0-5000 the raw data of recipes downloaded with all the information
 
     Processing:
     - preprocessing_general creating df with only necessary data as well as tokenizing, vectorizing, and embedding the data collected. Utilizing BertTokenizing model, a pretrained NLP to assist with embedding 

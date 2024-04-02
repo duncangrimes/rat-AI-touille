@@ -1,7 +1,7 @@
 import json
 import pandas as pd
 
-file_path = "data/collection/recipes1250-2500.json"
+file_path = "data/collection/raw_recipes_1250-2500.json"
 
 with open(file_path, 'r') as file:
     data = json.load(file)

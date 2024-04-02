@@ -3,7 +3,7 @@ import pandas as pd
 from transformers import BertTokenizer
 from transformers import BertModel
 
-file_path = "data/collection/recipes1250-2500.json"
+file_path = "data/collection/raw_recipes_1250-2500.json"
 
 def general_preprocess(file_path):
     with open(file_path, 'r') as file:
