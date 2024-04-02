@@ -5,6 +5,7 @@ Collection, filtering, preprocessing, tokenizing, encoding, embedding (with pret
 
 
 Directory: 
+
     Collection: 
     - collection_script collecton script from spoon API
     - recipes 0-5000 the raw data of recipes downloaded with all the information
