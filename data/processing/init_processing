@@ -18,15 +18,19 @@ def init_processing():
 
     recipes = pd.concat([recipe1, recipe2, recipe3], ignore_index=True)
 
+    #  drop all failures -- recipes without ids
     recipes = recipes.dropna(axis=0, subset=['id'])
     recipes['id'] = recipes['id'].astype(int)
     recipes = recipes.sort_values(by='id')
 
+    # Label data with instructions
     recipes['has_instructs'] = recipes['analyzedInstructions'].apply(lambda x: len(x) > 0)
     
+    # Extract ingredient list and equipment list
     create_ingred_list(recipes)
     create_equip_list(recipes)
 
+    # Remove unnecessary columns
     recipes = recipes[['id', 'title', 'image', 'dishTypes', 'has_instructs']]
 
     json_data = recipes.to_json(orient='records')
