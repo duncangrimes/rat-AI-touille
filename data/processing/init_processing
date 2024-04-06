@@ -1,0 +1,145 @@
+import json
+import pandas as pd
+from transformers import BertTokenizer
+from transformers import BertModel
+
+def init_processing():
+    with open("data/collection/stage_0/raw_recipes_0-1249.json", 'r') as file:
+        data = json.load(file)
+    recipe1 = pd.DataFrame(data)
+    
+    with open("data/collection/stage_0/raw_recipes_1250-2500.json", 'r') as file:
+        data = json.load(file)
+    recipe2 = pd.DataFrame(data)
+
+    with open("data/collection/stage_0/raw_recipes_2501-5000.json", 'r') as file:
+        data = json.load(file)
+    recipe3 = pd.DataFrame(data)
+
+    recipes = pd.concat([recipe1, recipe2, recipe3], ignore_index=True)
+
+    #  drop all failures -- recipes without ids
+    recipes = recipes.dropna(axis=0, subset=['id'])
+    recipes['id'] = recipes['id'].astype(int)
+    recipes = recipes.sort_values(by='id')
+
+    # Label data with instructions
+    recipes['has_instructs'] = recipes['analyzedInstructions'].apply(lambda x: len(x) > 0)
+    
+    # Extract ingredient list and equipment list
+    create_ingred_list(recipes)
+    create_equip_list(recipes)
+
+    # Remove unnecessary columns
+    recipes = recipes[['id', 'title', 'image', 'dishTypes', 'has_instructs']]
+
+    json_data = recipes.to_json(orient='records')
+    with open('data/processing/stage_1/recipe_df.json', 'w') as file:
+        file.write(json_data)
+
+    print(recipes)
+    
+    # return recipes
+
+
+# TODO: WRITE FINAL PREPROCESSED DATA TO JSON IF NECESSARY
+
+
+# -------------- HELPER FUNCTIONS --------------
+
+# Extract ingredient list from instructions
+def extract_ingred(instructions):
+    ingredients = []
+    for instruction in instructions:
+        for step in instruction['steps']:
+            for ingredient in step['ingredients']:
+                if (ingredient['name'] not in ingredients):
+                    ingredients.append(ingredient['name'])
+    return ingredients
+
+# Extract equipment list from instructions
+def extract_equip(instructions):
+    equipment = []
+    for instruction in instructions:
+        for step in instruction['steps']:
+            for e in step['equipment']:
+                if (e['name'] not in equipment):
+                    equipment.append(e['name'])
+    return equipment
+
+
+# -------------- CREATE INGREDIENT AND EQUIPMENT LISTS --------------
+# Create ingredient list
+def create_ingred_list(recipes):   
+    # Create a dictionary of ingredients for each recipe, by id
+    ingredient_dict = dict()
+    for index, row in recipes.iterrows():
+        id = int(row['id'])
+        analyzedInstructions = row['analyzedInstructions']
+        ingredient_dict[id] = extract_ingred(analyzedInstructions)
+    ingredient_df = pd.DataFrame({'id': list(ingredient_dict.keys())})
+
+    # Convert dictionary to dataframe
+    ingredient_num = 1 # Column number of ingredient
+    out_of_ingredients = 0 # Number of recipes that have run out of ingredients
+    while (len(ingredient_dict.keys()) > out_of_ingredients):
+        out_of_ingredients = 0
+        columnName = f'i_{ingredient_num}'
+        data = []
+        dishes = []
+        for index, row in ingredient_df.iterrows():
+            id = row['id']
+            if (len(ingredient_dict[id]) > 0):
+                data.append(ingredient_dict[id].pop(0))
+                dishes.append(index)
+            else:
+                out_of_ingredients += 1
+        ingredient_df[columnName] = pd.Series(data, index=dishes)
+        ingredient_num += 1
+    # Remove last column as it is empty
+    ingredient_df = ingredient_df.drop(f'i_{ingredient_num-1}', axis=1)
+
+    # Write to json
+    json_data = ingredient_df.to_json(orient='records')
+    with open('data/processing/stage_1/ingredient_df.json', 'w') as file:
+        file.write(json_data)
+
+    return ingredient_df
+
+# Create equipment list
+def create_equip_list(recipes):    
+    # Create a dictionary of equipment for each recipe, by id
+    equipment_dict = dict()
+    for index, row in recipes.iterrows():
+        id = int(row['id'])
+        analyzedInstructions = row['analyzedInstructions']
+        equipment_dict[id] = extract_equip(analyzedInstructions)
+    equipment_df = pd.DataFrame({'id': list(equipment_dict.keys())})
+    
+    equipment_num = 1 # Column number of equipment
+    out_of_equipment = 0 # Number of recipes that have run out of equipment
+    while (len(equipment_dict.keys()) > out_of_equipment):
+        out_of_equipment = 0
+        columnName = f'i_{equipment_num}'
+        data = []
+        dishes = []
+        for index, row in equipment_df.iterrows():
+            id = row['id']
+            if (len(equipment_dict[id]) > 0):
+                data.append(equipment_dict[id].pop(0))
+                dishes.append(index)
+            else:
+                out_of_equipment += 1
+        equipment_df[columnName] = pd.Series(data, index=dishes)
+        equipment_num += 1
+    # Remove last column as it is empty
+    equipment_df = equipment_df.drop(f'i_{equipment_num-1}', axis=1)
+
+    # Write to json
+    json_data = equipment_df.to_json(orient='records')
+    with open('data/processing/stage_1/equipment_df.json', 'w') as file:
+        file.write(json_data)
+
+    return equipment_df
+
+init_processing()
