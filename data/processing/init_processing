@@ -26,20 +26,23 @@ def init_processing():
     # Label data with instructions
     recipes['has_instructs'] = recipes['analyzedInstructions'].apply(lambda x: len(x) > 0)
     
+    # Document full instructions
+    with open('data/processing/stage_1/full_instructions.json', 'w') as file:
+        file.write(recipes[['id','analyzedInstructions','has_instructs']].to_json(orient='records'))
+
     # Extract ingredient list and equipment list
     create_ingred_list(recipes)
     create_equip_list(recipes)
 
     # Remove unnecessary columns
     recipes = recipes[['id', 'title', 'image', 'dishTypes', 'has_instructs']]
+    json_recipes = recipes.to_json(orient='records')
 
-    json_data = recipes.to_json(orient='records')
+    # Write to json
     with open('data/processing/stage_1/recipe_df.json', 'w') as file:
-        file.write(json_data)
-
-    print(recipes)
+        file.write(json_recipes)
     
-    # return recipes
+    
 
 
 # TODO: WRITE FINAL PREPROCESSED DATA TO JSON IF NECESSARY
