@@ -26,20 +26,23 @@ def init_processing():
     # Label data with instructions
     recipes['has_instructs'] = recipes['analyzedInstructions'].apply(lambda x: len(x) > 0)
     
+    # Document full instructions
+    with open('data/processing/stage_1/full_instructions.json', 'w') as file:
+        file.write(recipes[['id','analyzedInstructions','has_instructs']].to_json(orient='records'))
+
     # Extract ingredient list and equipment list
     create_ingred_list(recipes)
     create_equip_list(recipes)
 
     # Remove unnecessary columns
     recipes = recipes[['id', 'title', 'image', 'dishTypes', 'has_instructs']]
+    json_recipes = recipes.to_json(orient='records')
 
-    json_data = recipes.to_json(orient='records')
+    # Write to json
     with open('data/processing/stage_1/recipe_df.json', 'w') as file:
-        file.write(json_data)
-
-    print(recipes)
+        file.write(json_recipes)
     
-    # return recipes
+    
 
 
 # TODO: WRITE FINAL PREPROCESSED DATA TO JSON IF NECESSARY
@@ -80,6 +83,7 @@ def create_ingred_list(recipes):
     ingredient_df = pd.DataFrame({'id': list(ingredient_dict.keys())})
 
     # Convert dictionary to dataframe
+    # If we want we can also just use the dictionary rather than converting to a dataframe
     ingredient_num = 1 # Column number of ingredient
     out_of_ingredients = 0 # Number of recipes that have run out of ingredients
     while (len(ingredient_dict.keys()) > out_of_ingredients):
@@ -116,11 +120,13 @@ def create_equip_list(recipes):
         equipment_dict[id] = extract_equip(analyzedInstructions)
     equipment_df = pd.DataFrame({'id': list(equipment_dict.keys())})
     
+    # Convert dictionary to dataframe
+    # If we want we can also just use the dictionary rather than converting to a dataframe
     equipment_num = 1 # Column number of equipment
     out_of_equipment = 0 # Number of recipes that have run out of equipment
     while (len(equipment_dict.keys()) > out_of_equipment):
         out_of_equipment = 0
-        columnName = f'i_{equipment_num}'
+        columnName = f'e_{equipment_num}'
         data = []
         dishes = []
         for index, row in equipment_df.iterrows():
@@ -133,7 +139,7 @@ def create_equip_list(recipes):
         equipment_df[columnName] = pd.Series(data, index=dishes)
         equipment_num += 1
     # Remove last column as it is empty
-    equipment_df = equipment_df.drop(f'i_{equipment_num-1}', axis=1)
+    equipment_df = equipment_df.drop(f'e_{equipment_num-1}', axis=1)
 
     # Write to json
     json_data = equipment_df.to_json(orient='records')
