@@ -37,18 +37,18 @@ def init_processing():
     # Document full instructions
     with open('data/processing/stage_1/recipes(analyzed_instructions).json', 'w') as file:
         file.write(recipes[['id','analyzedInstructions','has_instructs']].to_json(orient='records'))
-
+    
     # Extract ingredient list and equipment list
     create_ingred_list(recipes)
     create_equip_list(recipes)
 
-    print('\nRecipes DataFrame Info:\n')
-    print(recipes.info())
-
     # Remove unnecessary columns
-    json_recipes = recipes.to_json(orient='records')
+    recipes = recipes[['id', 'title', 'image', 'dishTypes']]
     
     # Write to json
+    print('\nRecipes DataFrame Info:\n')
+    print(recipes.info())
+    json_recipes = recipes.to_json(orient='records')
     with open('data/processing/stage_1/recipes_df.json', 'w') as file:
         file.write(json_recipes)
 
