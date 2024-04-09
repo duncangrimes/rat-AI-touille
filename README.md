@@ -20,3 +20,7 @@ Directory:
     Tokenizing:
     - bert_tokenizing example for tokenizing data, utilized in preprocessing_general 
 
+    To do:
+    - run data through tokenizer and model, 
+    - 
+
