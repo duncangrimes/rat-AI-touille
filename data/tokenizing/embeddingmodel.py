@@ -6,6 +6,10 @@ from gensim.models.keyedvectors import KeyedVectors
 #need to install gensim
 
 # Check if input file exists
+
+input_file = 'data/tokenizing/pairing_paths.txt'
+
+
 if len(sys.argv) != 2:
     print("Usage: python train_model.py <input_file>")
     exit(1)
@@ -20,7 +24,9 @@ with open(input_file, 'r') as f:
     lines = f.readlines()
 
 # Train the Word2Vec model
-model = Word2Vec([line.strip().split() for line in lines], size=128, window=5, min_count=1, workers=4)
+model = Word2Vec([line.strip().split() for line in lines], window=5, min_count=1, workers=4)
+#model = Word2Vec([line.strip().split() for line in lines], size=128, window=5, min_count=1, workers=4)
+
 
 # Save the trained model
 model.save('flavorgraph2vec.model')
@@ -30,7 +36,7 @@ vectors = model.wv
 vectors.save('flavorgraph2vec.vec')
 
 
-# TO run this :  python train_model.py pairing_paths.txt - this trains
+# TO run this :  python embeddingmodel.py pairing_paths.txt - this trains
  #a Word2Vec model using the pairing paths in pairing_paths.txt 
 ##and save the trained model and word vectors to files named 
 #flavorgraph2vec.model and flavorgraph2vec.vec
