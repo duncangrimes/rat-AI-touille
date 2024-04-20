@@ -3,6 +3,7 @@ import sys
 import gensim.downloader as api
 from gensim.models import Word2Vec
 from gensim.models.keyedvectors import KeyedVectors
+#need to install gensim
 
 # Check if input file exists
 if len(sys.argv) != 2:
