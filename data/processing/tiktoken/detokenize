@@ -1,0 +1,25 @@
+import json
+import tiktoken
+
+def load_tokenized_ingredients(filepath):
+    with open(filepath, 'r') as file:
+        # Load the JSON data into a dictionary
+        tokenized_ingredients = json.load(file)
+    return tokenized_ingredients
+
+def tokens_to_text(tokenized_ingredients: dict):
+    encoding = tiktoken.get_encoding("cl100k_base")
+
+    decoded_ingredients = dict()
+    for key, tokens in tokenized_ingredients.items():
+        # Decode the list of tokens into a string of ingredients
+        ingredient_text = encoding.decode(tokens)
+        # Convert string to set of ingredients (if originally multiple ingredients)
+        # ingredient_set = set(ingredient_text.split())  # Assuming space-separated ingredients
+        decoded_ingredients[key] = ingredient_text
+    return decoded_ingredients
+
+
+tokenized_ingredients = load_tokenized_ingredients("data/storage/stage_2/tokenized_dishnames.json")
+decoded_ingredients = tokens_to_text(tokenized_ingredients)
+print(decoded_ingredients)
