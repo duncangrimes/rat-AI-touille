@@ -36,5 +36,9 @@ def write_json(data: dict, filepath: str):
     
 
 recipes_dict = prepare_dictionaries('data/storage/stage_1.5/recipes_df.json')
-tokenized_ingredients = tokenize_dishnames(recipes_dict)
-write_json(tokenized_ingredients, 'data/storage/stage_2/tokenized_dishnames.json')
+tokenized_dishnames = tokenize_dishnames(recipes_dict)
+write_json(tokenized_dishnames, 'data/storage/stage_2/tokenized_dishnames.json')
+
+more_recipes_dict = prepare_dictionaries('data/storage/stage_1.5/more_recipes_df(NO_INSTRUCTS).json')
+more_tokenized_dishnames = tokenize_dishnames(more_recipes_dict)
+write_json(more_tokenized_dishnames, 'data/storage/stage_2/more_tokenized_dishnames(NO_INSTRUCTS).json')

@@ -17,7 +17,7 @@ def consistent_token_count(filename: str):
     with open(f'data/storage/stage_3/{filename}', 'w') as file:
         json.dump(recipes, file)
 
-filenames = ['tokenized_dishnames.json', 'tokenized_ingredients.json', 'tokenized_equipment.json']
+filenames = ['tokenized_dishnames.json', 'tokenized_ingredients.json', 'tokenized_equipment.json', 'more_tokenized_dishnames(NO_INSTRUCTS).json']
 
 for filename in filenames:
     consistent_token_count(filename)
