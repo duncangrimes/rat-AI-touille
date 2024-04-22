@@ -25,7 +25,7 @@ def tokenize_equipment(recipes_dict: dict):
         encoding = tiktoken.get_encoding("cl100k_base")
 
         # Convert set of equipment to a single string
-        equipment_text = ' '.join(equipment)
+        equipment_text = ', '.join(equipment)
         # Tokenize the text
         tokens = encoding.encode(equipment_text)
         # Store tokens in dictionary using the recipe ID as key

@@ -1,0 +1,33 @@
+import json
+import tiktoken
+
+encoding = tiktoken.get_encoding("cl100k_base")
+
+def load_tokenized_data(filepath: str):
+    with open(filepath, 'r') as file:
+        # Load the JSON data into a dictionary
+        tokenized_ingredients = json.load(file)
+    return tokenized_ingredients
+
+def decode_ingreds_or_equip(tokenized_data: dict):
+    decoded_data = dict()
+    for key, tokens in tokenized_data.items():
+        # Decode the list of tokens into a string of ingredients
+        decoded_text = encoding.decode(tokens)
+        # Convert string to set of ingredients (if originally multiple ingredients)
+        decoded_set = set(decoded_text.split(', '))  # Assuming space-separated ingredients
+        decoded_data[key] = decoded_set
+    return decoded_data
+
+def decode_dishname(tokenized_dishnames: dict):
+    decoded_dishnames = dict()
+    for key, tokens in tokenized_dishnames.items():
+        # Decode the list of tokens into a string of ingredients
+        decoded_text = encoding.decode(tokens)
+        decoded_dishnames[key] = decoded_text
+    return decoded_dishnames
+
+
+tokenized_data = load_tokenized_data("data/storage/stage_2/tokenized_equipment.json")
+decoded_data = decode_ingreds_or_equip(tokenized_data)
+print(decoded_data)

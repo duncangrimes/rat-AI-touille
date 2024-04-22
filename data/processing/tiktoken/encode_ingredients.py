@@ -25,7 +25,7 @@ def tokenize_ingredients(recipes_dict: dict):
         encoding = tiktoken.get_encoding("cl100k_base")
 
         # Convert set of ingredients to a single string
-        ingredients_text = ' '.join(ingredients)
+        ingredients_text = ', '.join(ingredients)
         # Tokenize the text
         tokens = encoding.encode(ingredients_text)
         # Store tokens in dictionary using the recipe ID as key
@@ -37,6 +37,6 @@ def write_json(data: dict, filepath: str):
         json.dump(data, file)
     
 
-recipes_dict = prepare_dictionaries('data/processing/stage_1.5/ingredient_df.json')
+recipes_dict = prepare_dictionaries('data/storage/stage_1.5/ingredient_df.json')
 tokenized_ingredients = tokenize_ingredients(recipes_dict)
-write_json(tokenized_ingredients, 'data/tiktoken/stage_2/tokenized_ingredients.json')
+write_json(tokenized_ingredients, 'data/storage/stage_2/tokenized_ingredients.json')
