@@ -6,21 +6,16 @@ Collection, filtering, preprocessing, tokenizing, encoding, embedding (with pret
 
 Directory: 
 
-    Collection: 
+    data/collection: 
     - collection_script collecton script from spoon API
-    - raw_recipes_0-5000 the raw data of recipes downloaded with all the information
 
-    Processing:
-    - preprocessing_general creating df with only necessary data as well as tokenizing, vectorizing, and embedding the data collected. Utilizing BertTokenizing model, a pretrained NLP to assist with embedding 
-    - preprocesing1, filtering down necessary data
-
-    Processed_data: 
-    - different df's for models based off of necessary data, created in preprocessing files
-
-    Tokenizing:
-    - bert_tokenizing example for tokenizing data, utilized in preprocessing_general 
-
-    To do:
-    - run data through tokenizer and model, 
-    - 
+    data/processing:
+    
+    
+    data/storage:
+    - stage_0   raw recipe data from Spoonacular API
+    - stage_1   seperated out ingredients and equipment into their own dataframes
+    - stage_1.5 dropped recipes with > 33 ingredients
+    - stage_2   tokenized recipes using OpenAI TikToken
+    - stage_3   all entries have equal number of tokens (appended 0's)
 
