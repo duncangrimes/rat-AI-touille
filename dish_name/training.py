@@ -6,7 +6,8 @@ import json
 import numpy as np
 import tensorflow as tf
 from keras import Model
-from keras.layers import Input, LSTM, Dense, Concatenate
+from keras.layers import Input, LSTM, Dense, Concatenate, LeakyReLU, Dropout
+from keras import models
 from sklearn.model_selection import train_test_split
 
 # simple encoding function
@@ -52,66 +53,66 @@ def build_gan2(input_dim, output_dim):
 
 
 
-# # Define the generator model
-# def build_generator(latent_dim):
-#     model = models.Sequential()
-#     model.add(layers.Dense(64, input_dim=latent_dim))
-#     model.add(layers.LeakyReLU(alpha=0.2))
-#     model.add(layers.Dense(48))
-#     model.add(layers.LeakyReLU(alpha=0.2))
-#     model.add(layers.Dense(24))
-#     model.add(layers.LeakyReLU(alpha=0.2))
-#     model.add(layers.Dense(41, activation='softmax'))
-#     print(model.summary())
-#     return model
+# Define the generator model
+def build_generator(latent_dim, output_dim):
+    model = models.Sequential()
+    model.add(Dense(128, input_dim=latent_dim))
+    model.add(LeakyReLU(alpha=0.01))
+    model.add(Dense(64))
+    model.add(LeakyReLU(alpha=0.01))
+    model.add(Dense(24))
+    model.add(LeakyReLU(alpha=0.01))
+    model.add(Dense(output_dim, activation='softmax'))
+    # print(model.summary())
+    return model
 
-# # Define the discriminator model
-# def build_discriminator():
-#     model = models.Sequential()
-#     model.add(layers.Dense(512, input_shape=(41,)))
-#     model.add(layers.LeakyReLU(alpha=0.2))
-#     model.add(layers.Dropout(0.3))
-#     model.add(layers.Dense(256))
-#     model.add(layers.LeakyReLU(alpha=0.2))
-#     model.add(layers.Dropout(0.3))
-#     model.add(layers.Dense(128))
-#     model.add(layers.LeakyReLU(alpha=0.2))
-#     model.add(layers.Dropout(0.3))
-#     model.add(layers.Dense(1, activation='sigmoid'))
-#     print(model.summary())
-#     return model
+# Define the discriminator model
+def build_discriminator(input_dim):
+    model = models.Sequential()
+    model.add(Dense(128, input_shape=(input_dim,)))
+    model.add(LeakyReLU(alpha=0.01))
+    model.add(Dropout(0.3))
+    model.add(Dense(64))
+    model.add(LeakyReLU(alpha=0.01))
+    model.add(Dropout(0.3))
+    model.add(Dense(24))
+    model.add(LeakyReLU(alpha=0.01))
+    model.add(Dropout(0.3))
+    model.add(Dense(1, activation='sigmoid'))
+    # print(model.summary())
+    return model
 
-# # Define the GAN model
-# def build_gan(generator, discriminator):
-#     discriminator.trainable = False
-#     model = models.Sequential()
-#     model.add(generator)
-#     model.add(discriminator)
-#     return model
+# Define the GAN model
+def build_gan(generator, discriminator):
+    discriminator.trainable = False
+    model = models.Sequential()
+    model.add(generator)
+    model.add(discriminator)
+    return model
 
-# # Train GAN
-# def train_gan(generator, discriminator, gan, data, latent_dim, epochs, batch_size):
-#     for epoch in range(epochs):
-#         idx = np.random.randint(0, data.shape[0], batch_size)
-#         real_dishes = data[idx]
+# Train GAN
+def train_gan(generator, discriminator, gan, data, latent_dim, epochs, batch_size):
+    for epoch in range(epochs):
+        idx = np.random.randint(0, data.shape[0], batch_size)
+        real_dishes = data[idx]
 
-#         noise = np.random.normal(0, 1, (batch_size, latent_dim))
-#         fake_dishes = generator.predict(noise)
+        noise = np.random.normal(0, 1, (batch_size, latent_dim))
+        fake_dishes = generator.predict(noise)
 
-#         real_labels = np.ones((batch_size, 1))
-#         fake_labels = np.zeros((batch_size, 1))
+        real_labels = np.ones((batch_size, 1))
+        fake_labels = np.zeros((batch_size, 1))
 
-#         d_loss_real = discriminator.train_on_batch(real_dishes, real_labels)
-#         d_loss_fake = discriminator.train_on_batch(fake_dishes, fake_labels)
+        d_loss_real = discriminator.train_on_batch(real_dishes, real_labels)
+        d_loss_fake = discriminator.train_on_batch(fake_dishes, fake_labels)
 
-#         d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
+        d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
-#         noise = np.random.normal(0, 1, (batch_size, latent_dim))
-#         gen_labels = np.ones((batch_size, 1))
+        noise = np.random.normal(0, 1, (batch_size, latent_dim))
+        gen_labels = np.ones((batch_size, 1))
 
-#         g_loss = gan.train_on_batch(noise, gen_labels)
+        g_loss = gan.train_on_batch(noise, gen_labels)
 
-#         print(f"Epoch {epoch+1}, D Loss: {d_loss}, G Loss: {g_loss}")
+        print(f"Epoch {epoch+1}, D Loss: {d_loss}, G Loss: {g_loss}")
 
 # Main function
 def main():
@@ -126,33 +127,40 @@ def main():
     data = load_data(file_path)
     data = preprocess_data(data)
     
-    # OPTION 2: --------------
+    # get dimensions of data
     input_dim = data.shape[-1]
     output_dim = input_dim
-    # Compile the GAN model
-    gan = build_gan2(input_dim=input_dim, output_dim=output_dim)
-    gan.compile(optimizer='adam', loss='binary_crossentropy')
-
-    # Train the GAN model on the dataset of real dish names
-    gan.fit(data, np.ones((len(data), 1)), epochs=10)
-
-    # Use the trained GAN model to generate 100 new dish names from noise
-    noise = np.random.normal(0, 1, (100, latent_dim))
-    generated = gan.predict(noise)
-    print(generated)
 
     
     # OPTION 1: --------------
-    # # Build and compile models
-    # generator = build_generator(latent_dim)
-    # discriminator = build_discriminator()
-    # gan = build_gan(generator, discriminator)
+    # Build and compile models
+    generator = build_generator(latent_dim, output_dim)
+    discriminator = build_discriminator(input_dim)
+    gan = build_gan(generator, discriminator)
 
-    # discriminator.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    discriminator.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    gan.compile(optimizer='adam', loss='binary_crossentropy')
+
+    # Train GAN
+    train_gan(generator, discriminator, gan, data, latent_dim, epochs, batch_size)
+    
+    # Use the trained GAN model to generate 100 new dish names from noise
+    encoding = tiktoken.get_encoding("cl100k_base")
+    noise = np.random.normal(0, 1, (output_dim, latent_dim))
+    generated = gan.predict(noise)
+    print(generated)
+    
+    latent_space_vector = np.random.normal(0, 1, (1, latent_dim))
+
+    # OPTION 2: --------------
+    
+    # # Compile the GAN model
+    # gan = build_gan2(input_dim=input_dim, output_dim=output_dim)
     # gan.compile(optimizer='adam', loss='binary_crossentropy')
 
-    # # Train GAN
-    # train_gan(generator, discriminator, gan, data, latent_dim, epochs, batch_size)
+    # # Train the GAN model on the dataset of real dish names
+    # gan.fit(data, np.ones((len(data), 1)), epochs=10)
 
+    
 if __name__ == "__main__":
     main()
