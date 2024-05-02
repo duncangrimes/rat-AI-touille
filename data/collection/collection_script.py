@@ -12,7 +12,7 @@ import json
 first_recipe = 0
 last_recipe = 0
 apiKey = ""
-filename = "data/collection/recipes1250-2500.json"
+filename = "data/storage/stage_0/recipes1250-2500.json"
 
 
 
