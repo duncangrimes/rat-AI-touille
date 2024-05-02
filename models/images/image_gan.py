@@ -1,38 +1,57 @@
 import tensorflow as tf
 from tensorflow.keras import layers, Model
+from tensorflow.keras.utils import set_random_seed
 import numpy as np
 import json
 import os
 import cv2 
-from tensorflow.keras.layers import LeakyReLU
+from tensorflow.keras.layers import LeakyReLU, BatchNormalization, Conv2DTranspose, Dense, Dropout, Reshape, Flatten, Conv2D, Concatenate, Input
+from tensorflow.keras.initializers import RandomNormal, RandomUniform
 import matplotlib.pyplot as plt
+from PIL import Image
 
 # Suppress TensorFlow logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # Load tokenized data from a JSON file
-with open('/Users/blakelayman/rat-AI-touille/data/storage/stage_3/tokenized_dishnames.json', 'r') as f:
+with open('data/storage/stage_3/tokenized_dishnames.json', 'r') as f:
     tokenized_data = json.load(f)
 
 # Define a function to load images from a folder
-def load_images(folder):
+
+def load_images(folder, resize=False, resized_shape = (64,64)):
     image_data = {}
     for filename in os.listdir(folder):
         if filename.endswith(".jpg") or filename.endswith(".png"):
             image_id = os.path.splitext(filename)[0]
-            img = cv2.imread(os.path.join(folder, filename))
+            img = Image.open(os.path.join(folder, filename))
+            # img.resize(resized_shape).show()
             if img is not None:
-                image_data[image_id] = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
+                image_data[image_id] = np.array(img.resize(resized_shape)) 
     return image_data
 
 # Load images from the specified folder
-image_folder = '/Users/blakelayman/rat-AI-touille/data/processing/image_processing/images'
-image_data = load_images(image_folder)
+image_folder = 'data/processing/image_processing/images'
+image_data = load_images(image_folder, resize=True)
+print("TESTING DATA")
+idx = 12
+print(list(image_data.values())[idx].shape)
+
+# Display the image
+# cv2.imshow("Image", )
+
+# # Wait for the user to press a key
+# cv2.waitKey(0)
+
+# # Close all windows
+# cv2.destroyAllWindows()
+
+set_random_seed(42)
 
 # Associate tokenized data with corresponding images
 tokenized_with_images = {}
 for recipe_id, tokenized_recipe in tokenized_data.items():
-    if recipe_id in image_data:
+    if recipe_id in image_data.keys():
         tokenized_with_images[recipe_id] = {
             'tokens': tokenized_recipe,
             'image': image_data[recipe_id]
@@ -41,49 +60,98 @@ for recipe_id, tokenized_recipe in tokenized_data.items():
 # Parameters
 latent_dim = 100
 num_tokens = 41
-image_height = 370
-image_width = 556
-image_channels = 3
+image_height = list(image_data.values())[0].shape[0]
+image_width = list(image_data.values())[0].shape[1]
+image_channels = list(image_data.values())[0].shape[2]
 epochs = 15
 batch_size = 256
 
 # Generator with token input
 def build_generator(latent_dim, num_tokens, image_height, image_width, image_channels):
-    noise_input = layers.Input(shape=(latent_dim,))
-    tokens_input = layers.Input(shape=(num_tokens,))
-    x = layers.Concatenate()([noise_input, tokens_input])
+    # FROM https://github.com/soliao/DCGAN-food-image-generator/blob/master/DCGAN_food_colab.ipynb
+    
+    w_init = RandomNormal(mean=0.0, stddev=0.02)
+    
+    # Concatenated input layer
+    noise_input = Input(shape=(latent_dim,))
+    tokens_input = Input(shape=(num_tokens,))
+    inputs = Concatenate()([noise_input, tokens_input])
 
     # Base dimensions
-    base_units = 128
-    base_height = image_height // 4
-    base_width = image_width // 4
+    base_units = 1024
+    base_height = 4
+    base_width = 4
 
     # First dense layer
-    x = layers.Dense(base_units * base_height * base_width, activation='relu')(x)
-    x = layers.Reshape((base_height, base_width, base_units))(x)
+    x = Dense(base_units * base_height * base_width, activation='relu')(inputs)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha = 0.2)(x)
+    x = Reshape((base_height, base_width, base_units))(x)
 
-    # Upsample to the target dimensions
-    x = layers.Conv2DTranspose(base_units // 2, (5, 5), strides=(2, 2), padding='same', activation='relu')(x)
-    x = layers.Conv2DTranspose(image_channels, (5, 5), strides=(2, 2), padding='same', activation='tanh')(x)
+    ## Conv2D-T
+    x = Conv2DTranspose(512, 3, 2, padding = 'same', kernel_initializer = w_init, use_bias = False)(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha = 0.2)(x)
 
-    return Model(inputs=[noise_input, tokens_input], outputs=x)
+    ## Conv2D-T
+    x = Conv2DTranspose(256, 3, 2, padding = 'same', kernel_initializer = w_init, use_bias = False)(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha = 0.2)(x)
+        
+    ## Conv2D-T
+    x = Conv2DTranspose(128, 3, 2, 'same', kernel_initializer = w_init, use_bias = False)(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha = 0.2)(x)
+        
+    ## last Conv2DT (no batch norm!)
+    img = Conv2DTranspose(3, 3, 2, padding='same', activation = 'tanh', kernel_initializer = w_init, use_bias = False)(x)
+    
+    # generator model
+    model = Model(inputs = inputs, outputs = img, name = 'generator')
+    print(model.summary())
+
+    return model
 
 def build_discriminator(image_height, image_width, image_channels):
+    # weight initialization
+    w_init = RandomNormal(mean=0.0, stddev=0.02)
+    
     inputs = layers.Input(shape=(image_height, image_width, image_channels))
 
-    # Corrected usage of LeakyReLU with alpha parameter
-    x = layers.Conv2D(64, (5, 5), strides=(2, 2), padding='same')(inputs)
-    x = LeakyReLU(alpha=0.2)(x)
-    x = layers.Conv2D(128, (5, 5), strides=(2, 2), padding='same')(x)
-    x = LeakyReLU(alpha=0.2)(x)
-    
-    x = layers.Flatten()(x)
-    outputs = layers.Dense(1, activation='sigmoid')(x)
+    ## Conv
+    x = Conv2D(128, 3, 2, 'same', kernel_initializer = w_init)(inputs)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha = 0.2)(x)
+    x = Dropout(0.2)(x)
 
-    return Model(inputs=inputs, outputs=outputs)
+    ## Conv
+    x = Conv2D(256, 3, 2, 'same', kernel_initializer = w_init)(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha = 0.2)(x)
+    x = Dropout(0.2)(x)
 
+    ## Conv
+    x = Conv2D(512, 3, 2, 'same', kernel_initializer = w_init)(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha = 0.2)(x)
+    x = Dropout(0.2)(x)
 
+    ## Conv
+    x = Conv2D(1024, 3, 2, 'same', kernel_initializer = w_init)(x)
+    x = BatchNormalization()(x)
+    x = LeakyReLU(alpha = 0.2)(x)
+    x = Dropout(0.2)(x)
 
+    ## final layer
+    x = Flatten()(x)
+    x = Dropout(0.2)(x)
+    y = Dense(1, activation = 'sigmoid')(x)
+
+    # generator model
+    model = Model(inputs = inputs, outputs = y, name = 'discriminator')
+    print(model.summary())
+
+    return model
 
 
 # GAN
@@ -91,16 +159,17 @@ def build_gan(generator, discriminator):
     discriminator.trainable = False
     gen_input_noise = layers.Input(shape=(100,))
     gen_input_tokens = layers.Input(shape=(41,))
-    gen_output = generator([gen_input_noise, gen_input_tokens])
+    concatenated = Concatenate()([gen_input_noise, gen_input_tokens])
+    gen_output = generator(concatenated)
     gan_output = discriminator(gen_output)
     gan = Model(inputs=[gen_input_noise, gen_input_tokens], outputs=gan_output)
     return gan
 
 
 # Compile models
-image_height = 368
-image_width = 552
-image_channels = 3
+image_height = list(image_data.values())[0].shape[0]
+image_width = list(image_data.values())[0].shape[1]
+image_channels = list(image_data.values())[0].shape[2]
 
 generator = build_generator(latent_dim=100, num_tokens=41, image_height=image_height, image_width=image_width, image_channels=image_channels)
 discriminator = build_discriminator(image_height=image_height, image_width=image_width, image_channels=image_channels)
@@ -149,10 +218,11 @@ def train_gan(generator, discriminator, gan, dataset, tokenized_inputs, epochs, 
             start = step * batch_size
             end = start + batch_size
             image_batch = dataset[start:end]
-            token_batch = tokenized_inputs[start:end]
+            token_batch = np.float64(tokenized_inputs[start:end])
 
-            noise = np.random.randn(batch_size, latent_dim)
-            generated_images = generator.predict([noise, token_batch])
+            noise = np.float64(np.random.randn(batch_size, latent_dim))
+            concatenated = Concatenate()([noise, token_batch])
+            generated_images = generator.predict(concatenated)
             
             # Smoothing labels
             real_labels = np.ones((batch_size, 1)) * 0.9
@@ -173,12 +243,14 @@ train_gan(generator, discriminator, gan, resized_dataset, tokens_list, epochs, b
 # Check anchovy
 def generate_image(generator, encoded_tokens, latent_dim):
     # Generate noise vector
-    noise = np.random.randn(1, latent_dim)
+    noise = np.float64(np.random.randn(1, latent_dim))
     # Ensure tokens are in the correct shape for the generator input
-    tokens_input = np.array([encoded_tokens])
+    tokens_input = np.float64(np.array([encoded_tokens]))
+    
+    concatenated = Concatenate()([noise, tokens_input])
     
     # Generate image using the generator
-    generated_image = generator.predict([noise, tokens_input])
+    generated_image = generator.predict(concatenated)
     
     return generated_image
 
