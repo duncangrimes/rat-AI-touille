@@ -27,7 +27,7 @@ def load_images(folder, resize=False, resized_shape = (64,64)):
             img = Image.open(os.path.join(folder, filename))
             # img.resize(resized_shape).show()
             if img is not None:
-                image_data[image_id] = np.array(img.resize(resized_shape)) 
+                image_data[image_id] = np.array(img.resize(resized_shape))
     return image_data
 
 # Load images from the specified folder
@@ -63,7 +63,7 @@ num_tokens = 41
 image_height = list(image_data.values())[0].shape[0]
 image_width = list(image_data.values())[0].shape[1]
 image_channels = list(image_data.values())[0].shape[2]
-epochs = 15
+epochs = 100
 batch_size = 256
 
 # Generator with token input
@@ -202,7 +202,7 @@ tokens_list = [item['tokens'] for item in tokenized_with_images.values()]
 tokens_list = np.array(tokens_list)
 
 # Training function
-def train_gan(generator, discriminator, gan, dataset, tokenized_inputs, epochs, batch_size):
+def train_gan(generator, discriminator, gan, dataset, tokenized_inputs, epochs, batch_size, display_epochs=5):
     dataset = np.array(dataset)
     tokenized_inputs = np.array(tokenized_inputs)
     num_samples = len(dataset)
@@ -224,6 +224,9 @@ def train_gan(generator, discriminator, gan, dataset, tokenized_inputs, epochs, 
             concatenated = Concatenate()([noise, token_batch])
             generated_images = generator.predict(concatenated)
             
+            # print("GEN:",generated_images[-1])
+            # print("ACTUAL:", image_batch[-1])
+            
             # Smoothing labels
             real_labels = np.ones((batch_size, 1)) * 0.9
             fake_labels = np.zeros((batch_size, 1)) + 0.1
@@ -235,6 +238,21 @@ def train_gan(generator, discriminator, gan, dataset, tokenized_inputs, epochs, 
             if step % 10 == 0:
                 print(f"Epoch {epoch + 1}/{epochs}, Step {step+1}/{steps_per_epoch}, Discriminator Loss: {0.5 * (discriminator_loss_real + discriminator_loss_fake)}, Generator Loss: {generator_loss}")
 
+        if epoch % display_epochs == 0:
+            
+            # plot fake images
+            plt.figure(figsize = (20, 4))
+            for i in range(10):
+                fake_img = generated_images.copy()[i].reshape(64, 64, 3)
+                fake_img = (127.5*(fake_img + 1)).astype(int)
+                plt.subplot(1, 10, i+1)
+                plt.axis('off')
+                plt.imshow(fake_img)
+                with open(f"models/images/samples/{epoch}_{i}.png", 'w') as f:
+                    plt.imsave(f"models/images/samples/{epoch}_{i}.png", list(image_data.values())[idx])
+            # plt.show()
+            
+            
 # Start training
 train_gan(generator, discriminator, gan, resized_dataset, tokens_list, epochs, batch_size)
 
@@ -260,9 +278,13 @@ encoded_tokens_fried_anchovies = [37, 4588, 72584, 12831, 449, 54384, 0, 0, 0, 0
 # Use the revised function
 generated_image = generate_image(generator, encoded_tokens_fried_anchovies, latent_dim)
 
+num_samples = 10
+
+
 print("Generated image shape:", generated_image.shape)
 
 # Display the generated image
-plt.imshow((generated_image[0] * 0.5 + 0.5))  # Scale image back to [0, 1] range if needed
-plt.axis('off')
+print((generated_image[0] * 0.5 + 0.5))
+img = (generated_image[0] * 0.5 + 0.5)
+imgplot = plt.imshow(np.dot(img[...,:3], [0.33, 0.33, 0.33]), cmap='gray')
 plt.show()
