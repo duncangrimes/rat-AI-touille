@@ -10,6 +10,7 @@ from tensorflow.keras.initializers import RandomNormal, RandomUniform
 import matplotlib.pyplot as plt
 from PIL import Image
 
+
 # Suppress TensorFlow logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -63,7 +64,7 @@ num_tokens = 41
 image_height = list(image_data.values())[0].shape[0]
 image_width = list(image_data.values())[0].shape[1]
 image_channels = list(image_data.values())[0].shape[2]
-epochs = 100
+epochs = 500
 batch_size = 256
 
 # Generator with token input
@@ -201,12 +202,27 @@ tokens_list = [item['tokens'] for item in tokenized_with_images.values()]
 # Ensure tokens are numpy arrays
 tokens_list = np.array(tokens_list)
 
+def save_plot(g_loss_list, d_loss_list, filename):
+    # After training, save final training loss plot
+    plt.plot(g_loss_list)
+    plt.plot(d_loss_list)
+    plt.title('model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['generator loss', 'discriminator loss'], loc='upper left')
+    with open(filename, 'w') as _:
+        plt.savefig(filename)
+    plt.show()
+
 # Training function
 def train_gan(generator, discriminator, gan, dataset, tokenized_inputs, epochs, batch_size, display_epochs=5):
     dataset = np.array(dataset)
     tokenized_inputs = np.array(tokenized_inputs)
     num_samples = len(dataset)
     steps_per_epoch = num_samples // batch_size
+    
+    d_loss_list = np.array([])
+    g_loss_list = np.array([])
 
     for epoch in range(epochs):
         print(f'Starting Epoch {epoch+1}/{epochs}')
@@ -234,6 +250,9 @@ def train_gan(generator, discriminator, gan, dataset, tokenized_inputs, epochs, 
             discriminator_loss_real = discriminator.train_on_batch(image_batch, real_labels)
             discriminator_loss_fake = discriminator.train_on_batch(generated_images, fake_labels)
             generator_loss = gan.train_on_batch([noise, token_batch], real_labels)
+            
+            d_loss_list = np.concatenate([d_loss_list, [0.5 * (discriminator_loss_real + discriminator_loss_fake)]])
+            g_loss_list = np.concatenate([g_loss_list, [generator_loss]])
 
             if step % 10 == 0:
                 print(f"Epoch {epoch + 1}/{epochs}, Step {step+1}/{steps_per_epoch}, Discriminator Loss: {0.5 * (discriminator_loss_real + discriminator_loss_fake)}, Generator Loss: {generator_loss}")
@@ -244,14 +263,15 @@ def train_gan(generator, discriminator, gan, dataset, tokenized_inputs, epochs, 
             plt.figure(figsize = (20, 4))
             for i in range(10):
                 fake_img = generated_images.copy()[i].reshape(64, 64, 3)
-                fake_img = (127.5*(fake_img + 1)).astype(int)
+                fake_img = (127.5*(fake_img + 1)).astype(np.uint8)
                 plt.subplot(1, 10, i+1)
                 plt.axis('off')
                 plt.imshow(fake_img)
                 with open(f"models/images/samples/{epoch}_{i}.png", 'w') as f:
-                    plt.imsave(f"models/images/samples/{epoch}_{i}.png", list(image_data.values())[idx])
+                    plt.imsave(f"models/images/samples/{epoch}_{i}.png", np.array(fake_img))
             # plt.show()
             
+    save_plot(g_loss_list=g_loss_list, d_loss_list=d_loss_list, filename="models/images/training_plot.png")
             
 # Start training
 train_gan(generator, discriminator, gan, resized_dataset, tokens_list, epochs, batch_size)
