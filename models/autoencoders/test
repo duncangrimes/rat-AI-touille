@@ -1,0 +1,15 @@
+from autoencoder import Autoencoder
+from ingredient_ae import prepare_data
+from keras import layers, losses
+import numpy as np
+
+# train_data, val_data, test_data = prepare_data('tokenized_dishnames.json', 'tokenized_ingredients.json')
+
+dishnames, ingredients = prepare_data('tokenized_dishnames.json', 'tokenized_ingredients.json')
+
+autoencoder = Autoencoder(latent_dim = 100)
+autoencoder.compile(optimizer='adam', loss=losses.MeanSquaredError())
+history = autoencoder.fit(dishnames, ingredients, batch_size=128,
+                epochs=300,
+                shuffle=True,
+                validation_data=(dishnames, ingredients))
