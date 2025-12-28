@@ -1,5 +1,5 @@
 # rat-AI-touille
-Cook book bot for you and me
+AI book bot for you and me
 
 Collection, filtering, preprocessing, tokenizing, encoding, embedding (with pretrained model)
 
